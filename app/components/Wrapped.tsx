@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   motion,
-  AnimatePresence,
   useMotionValue,
   useTransform,
   animate,
@@ -257,31 +256,6 @@ export default function Wrapped() {
     setRandomizedImages(shuffleImages(allImages));
   }, []);
 
-  // Preload all images on mount
-  useEffect(() => {
-    const imagesToPreload: string[] = [];
-
-    // Collect all images from slides
-    slides.forEach((slide) => {
-      if (slide.image) {
-        imagesToPreload.push(slide.image);
-      }
-      if (slide.images) {
-        imagesToPreload.push(...slide.images);
-      }
-    });
-
-    // Also preload all carousel images
-    allImages.forEach((img) => {
-      imagesToPreload.push(img.src);
-    });
-
-    // Preload each image
-    imagesToPreload.forEach((src) => {
-      const img = new window.Image();
-      img.src = src;
-    });
-  }, []);
 
   const touchStartX = useRef<number | null>(null);
   const touchStartTime = useRef<number | null>(null);
@@ -434,8 +408,6 @@ export default function Wrapped() {
 
     touchStartX.current = null;
   };
-
-  const slide = slides[currentSlide];
 
   // Finished State (Summary/Carousel)
   if (currentSlide >= slides.length) {
@@ -591,242 +563,251 @@ export default function Wrapped() {
           />
         </div>
 
-        {/* Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={slide.id}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className={cn(
-              "absolute inset-0 flex flex-col items-center justify-center text-center overflow-hidden",
-              slide.color
-            )}
-          >
-            {/* Background Image for Vertical Slides */}
-            {slide.type === "vertical-image" && slide.image && (
-              <div className="absolute inset-0 z-0">
-                <Image
-                  src={slide.image}
-                  alt={slide.title || ""}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 opacity-90" />
-              </div>
-            )}
-
-            {/* Background Icon for solid slides */}
-            {slide.bgIcon && (
-              <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden pointer-events-none">
-                <slide.bgIcon
-                  className="w-[80vh] h-[80vh] text-white opacity-[0.03] -rotate-12 transform"
-                  strokeWidth={1}
-                />
-              </div>
-            )}
-
-            <div
+        {/* Content - Render all slides, show only current one */}
+        {slides.map((s, idx) => {
+          const isActive = idx === currentSlide;
+          return (
+            <motion.div
+              key={s.id}
+              initial={false}
+              animate={{
+                opacity: isActive ? 1 : 0,
+                scale: isActive ? 1 : 1.05,
+                zIndex: isActive ? 10 : 0,
+              }}
+              transition={{ duration: 0.4 }}
               className={cn(
-                "relative z-10 w-full h-full flex flex-col justify-center p-8",
-                slide.type === "vertical-image" ? "justify-end pb-24" : ""
+                "absolute inset-0 flex flex-col items-center justify-center text-center overflow-hidden",
+                s.color,
+                !isActive && "pointer-events-none"
               )}
             >
-              {slide.type === "intro" && (
-                <div className="space-y-6">
-                  <motion.h1
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-6xl font-black uppercase tracking-tighter"
-                  >
-                    {slide.title}
-                  </motion.h1>
-                  <motion.p
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-2xl font-medium opacity-90"
-                  >
-                    {slide.subtitle}
-                  </motion.p>
+              {/* Background Image for Vertical Slides */}
+              {s.type === "vertical-image" && s.image && (
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src={s.image}
+                    alt={s.title || ""}
+                    fill
+                    className="object-cover"
+                    priority={idx <= 2}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 opacity-90" />
                 </div>
               )}
 
-              {slide.type === "counter" && slide.counter && (
-                <Counter
-                  value={slide.counter.value}
-                  label={slide.counter.label}
-                  description={slide.counter.description}
-                />
-              )}
-
-              {slide.type === "stat" && slide.stat && (
-                <div className="space-y-8">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", bounce: 0.5 }}
-                    className="mx-auto w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"
-                  >
-                    <slide.stat.icon size={48} className="text-white" />
-                  </motion.div>
-                  <div>
-                    <motion.div
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="text-7xl font-bold tracking-tight"
-                    >
-                      {slide.stat.value}
-                    </motion.div>
-                    <motion.div
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-2xl font-semibold mt-2 uppercase tracking-widest opacity-80"
-                    >
-                      {slide.stat.label}
-                    </motion.div>
-                  </div>
-                  <motion.p
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-xl max-w-xs mx-auto leading-relaxed"
-                  >
-                    {slide.stat.description}
-                  </motion.p>
+              {/* Background Icon for solid slides */}
+              {s.bgIcon && (
+                <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden pointer-events-none">
+                  <s.bgIcon
+                    className="w-[80vh] h-[80vh] text-white opacity-[0.03] -rotate-12 transform"
+                    strokeWidth={1}
+                  />
                 </div>
               )}
 
-              {slide.type === "collage" && slide.images && (
-                <div className="w-full h-full flex flex-col pt-8 pb-3 px-2">
-                  <div className="flex-1 flex flex-col gap-1.5 min-h-0">
-                    {slide.images.map((img, idx) => (
-                      <motion.div
-                        key={img}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: idx * 0.12 }}
-                        className="relative flex-1 rounded-lg overflow-hidden shadow-xl"
-                      >
-                        <Image
-                          src={img}
-                          alt="Collage memory"
-                          fill
-                          className="object-cover"
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                  {slide.title && (
-                    <motion.div
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                      className="mt-2 relative z-10"
+              <div
+                className={cn(
+                  "relative z-10 w-full h-full flex flex-col justify-center p-8",
+                  s.type === "vertical-image" ? "justify-end pb-24" : ""
+                )}
+              >
+                {s.type === "intro" && (
+                  <div className="space-y-6">
+                    <motion.h1
+                      initial={false}
+                      animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                      transition={{ delay: isActive ? 0.2 : 0 }}
+                      className="text-6xl font-black uppercase tracking-tighter"
                     >
-                      <h2 className="text-3xl font-black uppercase tracking-tight text-white">
-                        {slide.title}
-                      </h2>
-                    </motion.div>
-                  )}
-                </div>
-              )}
-
-              {slide.type === "vertical-image" && (
-                <div className="space-y-2 text-left w-full">
-                  <motion.h2
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="text-4xl sm:text-5xl font-black uppercase tracking-tighter leading-none"
-                  >
-                    {slide.title}
-                  </motion.h2>
-                  {slide.subtitle && (
+                      {s.title}
+                    </motion.h1>
                     <motion.p
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-xl sm:text-2xl font-bold opacity-90 text-emerald-300"
+                      initial={false}
+                      animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                      transition={{ delay: isActive ? 0.4 : 0 }}
+                      className="text-2xl font-medium opacity-90"
                     >
-                      {slide.subtitle}
+                      {s.subtitle}
                     </motion.p>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
 
-              {slide.type === "list" && slide.listItems && (
-                <div className="w-full h-full flex flex-col pt-12">
-                  <div className="mb-6">
-                    <motion.h2
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="text-4xl font-black uppercase tracking-tighter"
+                {s.type === "counter" && s.counter && isActive && (
+                  <Counter
+                    key={`counter-${s.id}-${currentSlide}`}
+                    value={s.counter.value}
+                    label={s.counter.label}
+                    description={s.counter.description}
+                  />
+                )}
+
+                {s.type === "stat" && s.stat && (
+                  <div className="space-y-8">
+                    <motion.div
+                      initial={false}
+                      animate={isActive ? { scale: 1 } : { scale: 0 }}
+                      transition={{ type: "spring", bounce: 0.5 }}
+                      className="mx-auto w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"
                     >
-                      {slide.title}
-                    </motion.h2>
-                    {slide.subtitle && (
-                      <p className="text-sm opacity-60 mt-1">
-                        {slide.subtitle}
-                      </p>
+                      <s.stat.icon size={48} className="text-white" />
+                    </motion.div>
+                    <div>
+                      <motion.div
+                        initial={false}
+                        animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                        transition={{ delay: isActive ? 0.2 : 0 }}
+                        className="text-7xl font-bold tracking-tight"
+                      >
+                        {s.stat.value}
+                      </motion.div>
+                      <motion.div
+                        initial={false}
+                        animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                        transition={{ delay: isActive ? 0.3 : 0 }}
+                        className="text-2xl font-semibold mt-2 uppercase tracking-widest opacity-80"
+                      >
+                        {s.stat.label}
+                      </motion.div>
+                    </div>
+                    <motion.p
+                      initial={false}
+                      animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                      transition={{ delay: isActive ? 0.4 : 0 }}
+                      className="text-xl max-w-xs mx-auto leading-relaxed"
+                    >
+                      {s.stat.description}
+                    </motion.p>
+                  </div>
+                )}
+
+                {s.type === "collage" && s.images && (
+                  <div className="w-full h-full flex flex-col pt-8 pb-3 px-2">
+                    <div className="flex-1 flex flex-col gap-1.5 min-h-0">
+                      {s.images.map((img, imgIdx) => (
+                        <motion.div
+                          key={img}
+                          initial={false}
+                          animate={isActive ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
+                          transition={{ delay: isActive ? imgIdx * 0.12 : 0 }}
+                          className="relative flex-1 rounded-lg overflow-hidden shadow-xl"
+                        >
+                          <Image
+                            src={img}
+                            alt="Collage memory"
+                            fill
+                            className="object-cover"
+                            priority={idx <= 2}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                    {s.title && (
+                      <motion.div
+                        initial={false}
+                        animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                        transition={{ delay: isActive ? 0.5 : 0 }}
+                        className="mt-2 relative z-10"
+                      >
+                        <h2 className="text-3xl font-black uppercase tracking-tight text-white">
+                          {s.title}
+                        </h2>
+                      </motion.div>
                     )}
                   </div>
+                )}
 
-                  <div className="flex-1 flex flex-col gap-3 justify-center max-w-xs mx-auto w-full">
-                    {slide.listItems.map((item, idx) => (
-                      <motion.div
-                        key={item.label}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="flex items-center justify-between bg-white/10 p-4 rounded-lg backdrop-blur-sm"
+                {s.type === "vertical-image" && (
+                  <div className="space-y-2 text-left w-full">
+                    <motion.h2
+                      initial={false}
+                      animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                      className="text-4xl sm:text-5xl font-black uppercase tracking-tighter leading-none"
+                    >
+                      {s.title}
+                    </motion.h2>
+                    {s.subtitle && (
+                      <motion.p
+                        initial={false}
+                        animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                        transition={{ delay: isActive ? 0.1 : 0 }}
+                        className="text-xl sm:text-2xl font-bold opacity-90 text-emerald-300"
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-xl w-6 text-center opacity-50">
-                            {item.rank ?? idx + 1}
-                          </span>
-                          <span className="font-bold text-lg">
-                            {item.label}
-                          </span>
-                        </div>
-                        <span className="font-mono font-bold text-emerald-400 text-xl">
-                          {item.value}
-                        </span>
-                      </motion.div>
-                    ))}
+                        {s.subtitle}
+                      </motion.p>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
 
-              {slide.type === "outro" && (
-                <div className="space-y-6">
-                  <motion.h1
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="text-5xl font-black uppercase leading-tight"
-                  >
-                    {slide.title}
-                  </motion.h1>
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <Trophy
-                      size={80}
-                      className="mx-auto text-yellow-400 mb-6"
-                    />
-                    <p className="text-2xl font-bold">{slide.subtitle}</p>
-                  </motion.div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                {s.type === "list" && s.listItems && (
+                  <div className="w-full h-full flex flex-col pt-12">
+                    <div className="mb-6">
+                      <motion.h2
+                        initial={false}
+                        animate={isActive ? { scale: 1, opacity: 1 } : { scale: 0.9, opacity: 0 }}
+                        className="text-4xl font-black uppercase tracking-tighter"
+                      >
+                        {s.title}
+                      </motion.h2>
+                      {s.subtitle && (
+                        <p className="text-sm opacity-60 mt-1">
+                          {s.subtitle}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex-1 flex flex-col gap-3 justify-center max-w-xs mx-auto w-full">
+                      {s.listItems.map((item, itemIdx) => (
+                        <motion.div
+                          key={item.label}
+                          initial={false}
+                          animate={isActive ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
+                          transition={{ delay: isActive ? itemIdx * 0.1 : 0 }}
+                          className="flex items-center justify-between bg-white/10 p-4 rounded-lg backdrop-blur-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-xl w-6 text-center opacity-50">
+                              {item.rank ?? itemIdx + 1}
+                            </span>
+                            <span className="font-bold text-lg">
+                              {item.label}
+                            </span>
+                          </div>
+                          <span className="font-mono font-bold text-emerald-400 text-xl">
+                            {item.value}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {s.type === "outro" && (
+                  <div className="space-y-6">
+                    <motion.h1
+                      initial={false}
+                      animate={isActive ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0 }}
+                      className="text-5xl font-black uppercase leading-tight"
+                    >
+                      {s.title}
+                    </motion.h1>
+                    <motion.div
+                      initial={false}
+                      animate={isActive ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+                      transition={{ delay: isActive ? 0.3 : 0 }}
+                    >
+                      <Trophy
+                        size={80}
+                        className="mx-auto text-yellow-400 mb-6"
+                      />
+                      <p className="text-2xl font-bold">{s.subtitle}</p>
+                    </motion.div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
 
         {/* Footer/Brand */}
         <div className="absolute bottom-4 left-0 right-0 z-30 text-center text-xs font-bold tracking-widest opacity-50 uppercase pointer-events-none">
