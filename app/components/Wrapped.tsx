@@ -258,6 +258,7 @@ export default function Wrapped() {
   }, []);
 
   const touchStartX = useRef<number | null>(null);
+  const touchStartTime = useRef<number | null>(null);
 
   // Auto-advance
   useEffect(() => {
@@ -345,6 +346,27 @@ export default function Wrapped() {
     }
   };
 
+  // Slide navigation touch handlers (hold to pause, tap to navigate)
+  const handleSlideTouchStart = () => {
+    touchStartTime.current = Date.now();
+    setIsPaused(true);
+  };
+
+  const handleSlideTouchEnd = (navigate: () => void) => {
+    setIsPaused(false);
+    
+    // Only navigate if it was a quick tap (< 200ms), not a hold
+    if (touchStartTime.current !== null) {
+      const holdDuration = Date.now() - touchStartTime.current;
+      if (holdDuration < 200) {
+        navigate();
+      }
+    }
+    
+    touchStartTime.current = null;
+  };
+
+  // Carousel touch handlers (for outro screen)
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsCarouselPaused(true);
     touchStartX.current = e.touches[0].clientX;
@@ -510,16 +532,22 @@ export default function Wrapped() {
             onClick={prevSlide}
             onMouseDown={() => setIsPaused(true)}
             onMouseUp={() => setIsPaused(false)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => setIsPaused(false)}
+            onTouchStart={handleSlideTouchStart}
+            onTouchEnd={(e) => {
+              e.preventDefault(); // Prevent click from firing
+              handleSlideTouchEnd(prevSlide);
+            }}
           />
           <div
             className="flex-1 h-full"
             onClick={nextSlide}
             onMouseDown={() => setIsPaused(true)}
             onMouseUp={() => setIsPaused(false)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => setIsPaused(false)}
+            onTouchStart={handleSlideTouchStart}
+            onTouchEnd={(e) => {
+              e.preventDefault(); // Prevent click from firing
+              handleSlideTouchEnd(nextSlide);
+            }}
           />
         </div>
 
