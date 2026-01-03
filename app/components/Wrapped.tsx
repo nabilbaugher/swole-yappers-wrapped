@@ -159,7 +159,7 @@ const slides: Slide[] = [
     counter: {
       value: 41,
       label: "Workouts",
-      description: "Sessions logged together.",
+      description: "We stayed consistent-ish 😤",
     },
     color: "bg-gradient-to-br from-blue-500 to-blue-900",
     bgIcon: Calendar,
@@ -260,7 +260,7 @@ export default function Wrapped() {
   // Preload all images on mount
   useEffect(() => {
     const imagesToPreload: string[] = [];
-    
+
     // Collect all images from slides
     slides.forEach((slide) => {
       if (slide.image) {
@@ -270,12 +270,12 @@ export default function Wrapped() {
         imagesToPreload.push(...slide.images);
       }
     });
-    
+
     // Also preload all carousel images
     allImages.forEach((img) => {
       imagesToPreload.push(img.src);
     });
-    
+
     // Preload each image
     imagesToPreload.forEach((src) => {
       const img = new window.Image();
@@ -285,18 +285,21 @@ export default function Wrapped() {
 
   const touchStartX = useRef<number | null>(null);
   const touchStartTime = useRef<number | null>(null);
+  const didSwipe = useRef(false);
 
   // Auto-advance
   useEffect(() => {
     if (isPaused) return;
     if (currentSlide >= slides.length) return;
 
-    // Different duration based on slide type if needed
-    const duration =
-      slides[currentSlide].type === "counter" &&
-      slides[currentSlide].counter?.value === "Uncountable"
-        ? 6000
-        : 5000;
+    // Different duration based on slide type
+    const currentSlideData = slides[currentSlide];
+    const isCollage = currentSlideData.type === "collage";
+    const isUncountable =
+      currentSlideData.type === "counter" &&
+      currentSlideData.counter?.value === "Uncountable";
+
+    const duration = isUncountable ? 6000 : isCollage ? 7000 : 5000;
 
     const timer = setTimeout(() => {
       setCurrentSlide((curr) => curr + 1);
@@ -357,6 +360,12 @@ export default function Wrapped() {
   };
 
   const handleCarouselClick = (e: React.MouseEvent) => {
+    // Don't handle click if we just did a swipe
+    if (didSwipe.current) {
+      didSwipe.current = false;
+      return;
+    }
+
     const { clientX, currentTarget } = e;
     const { left, width } = currentTarget.getBoundingClientRect();
     const x = clientX - left;
@@ -380,7 +389,7 @@ export default function Wrapped() {
 
   const handleSlideTouchEnd = (navigate: () => void) => {
     setIsPaused(false);
-    
+
     // Only navigate if it was a quick tap (< 200ms), not a hold
     if (touchStartTime.current !== null) {
       const holdDuration = Date.now() - touchStartTime.current;
@@ -388,17 +397,18 @@ export default function Wrapped() {
         navigate();
       }
     }
-    
+
     touchStartTime.current = null;
   };
 
   // Carousel touch handlers (for outro screen)
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleCarouselTouchStart = (e: React.TouchEvent) => {
     setIsCarouselPaused(true);
     touchStartX.current = e.touches[0].clientX;
+    didSwipe.current = false;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleCarouselTouchEnd = (e: React.TouchEvent) => {
     setIsCarouselPaused(false);
 
     if (touchStartX.current === null) return;
@@ -407,11 +417,15 @@ export default function Wrapped() {
     const diff = touchStartX.current - touchEndX;
 
     if (Math.abs(diff) > 50) {
+      // This was a swipe, not a tap
+      didSwipe.current = true;
       if (diff > 0) {
+        // Swiped left -> go to next
         setCarouselIndex((prev) =>
           prev + 1 >= randomizedImages.length ? 0 : prev + 1
         );
       } else {
+        // Swiped right -> go to previous
         setCarouselIndex((prev) =>
           prev - 1 < 0 ? randomizedImages.length - 1 : prev - 1
         );
@@ -470,8 +484,8 @@ export default function Wrapped() {
               <div
                 className="absolute inset-0 z-10"
                 onClick={handleCarouselClick}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
+                onTouchStart={handleCarouselTouchStart}
+                onTouchEnd={handleCarouselTouchEnd}
                 onMouseDown={() => setIsCarouselPaused(true)}
                 onMouseUp={() => setIsCarouselPaused(false)}
               />
@@ -520,10 +534,10 @@ export default function Wrapped() {
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 right-0 z-30 flex gap-1 p-2">
           {slides.map((s, idx) => {
-            const duration =
-              s.type === "counter" && s.counter?.value === "Uncountable"
-                ? 6
-                : 5;
+            const isCollage = s.type === "collage";
+            const isUncountable =
+              s.type === "counter" && s.counter?.value === "Uncountable";
+            const duration = isUncountable ? 6 : isCollage ? 7 : 5;
             const isComplete = idx < currentSlide;
             const isCurrent = idx === currentSlide;
             return (
@@ -536,7 +550,10 @@ export default function Wrapped() {
                   className="h-full bg-white"
                   style={{
                     width: isComplete ? "100%" : "0%",
-                    animation: isCurrent ? `progress ${duration}s linear forwards` : "none",
+                    animationName: isCurrent ? "progress" : "none",
+                    animationDuration: `${duration}s`,
+                    animationTimingFunction: "linear",
+                    animationFillMode: "forwards",
                     animationPlayState: isPaused ? "paused" : "running",
                   }}
                 />
@@ -546,7 +563,10 @@ export default function Wrapped() {
         </div>
 
         {/* Navigation Touch Areas */}
-        <div className="absolute inset-0 z-20 flex select-none touch-manipulation" style={{ WebkitTouchCallout: 'none' }}>
+        <div
+          className="absolute inset-0 z-20 flex select-none touch-manipulation"
+          style={{ WebkitTouchCallout: "none" }}
+        >
           <div
             className="flex-1 h-full"
             onClick={prevSlide}
