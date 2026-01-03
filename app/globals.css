@@ -16,3 +16,13 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow: hidden; /* Prevent scrolling for the full app feeling */
 }
+
+/* Progress bar animation for slides */
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}

@@ -257,6 +257,32 @@ export default function Wrapped() {
     setRandomizedImages(shuffleImages(allImages));
   }, []);
 
+  // Preload all images on mount
+  useEffect(() => {
+    const imagesToPreload: string[] = [];
+    
+    // Collect all images from slides
+    slides.forEach((slide) => {
+      if (slide.image) {
+        imagesToPreload.push(slide.image);
+      }
+      if (slide.images) {
+        imagesToPreload.push(...slide.images);
+      }
+    });
+    
+    // Also preload all carousel images
+    allImages.forEach((img) => {
+      imagesToPreload.push(img.src);
+    });
+    
+    // Preload each image
+    imagesToPreload.forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }, []);
+
   const touchStartX = useRef<number | null>(null);
   const touchStartTime = useRef<number | null>(null);
 
@@ -493,36 +519,30 @@ export default function Wrapped() {
       <div className="relative w-full max-w-md h-full max-h-[900px] flex flex-col bg-zinc-900 overflow-hidden sm:rounded-xl sm:h-[85vh] sm:shadow-2xl sm:border sm:border-zinc-800">
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 right-0 z-30 flex gap-1 p-2">
-          {slides.map((s, idx) => (
-            <div
-              key={s.id}
-              className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden"
-            >
-              <motion.div
-                key={`${s.id}-${currentSlide}`}
-                className="h-full bg-white"
-                initial={{ width: idx < currentSlide ? "100%" : "0%" }}
-                animate={{
-                  width:
-                    idx < currentSlide
-                      ? "100%"
-                      : idx === currentSlide
-                      ? "100%"
-                      : "0%",
-                }}
-                transition={{
-                  duration:
-                    idx === currentSlide
-                      ? s.type === "counter" &&
-                        s.counter?.value === "Uncountable"
-                        ? 6
-                        : 5
-                      : 0,
-                  ease: "linear",
-                }}
-              />
-            </div>
-          ))}
+          {slides.map((s, idx) => {
+            const duration =
+              s.type === "counter" && s.counter?.value === "Uncountable"
+                ? 6
+                : 5;
+            const isComplete = idx < currentSlide;
+            const isCurrent = idx === currentSlide;
+            return (
+              <div
+                key={s.id}
+                className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden"
+              >
+                <div
+                  key={`${s.id}-${currentSlide}`}
+                  className="h-full bg-white"
+                  style={{
+                    width: isComplete ? "100%" : "0%",
+                    animation: isCurrent ? `progress ${duration}s linear forwards` : "none",
+                    animationPlayState: isPaused ? "paused" : "running",
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* Navigation Touch Areas */}
