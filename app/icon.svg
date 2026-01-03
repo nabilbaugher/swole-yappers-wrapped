@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Center bar -->
+  <rect x="16" y="28" width="32" height="8" rx="2" fill="#000000"/>
+  
+  <!-- Left weight plates -->
+  <rect x="8" y="20" width="8" height="24" rx="2" fill="#000000"/>
+  <rect x="2" y="24" width="6" height="16" rx="1" fill="#000000"/>
+  
+  <!-- Right weight plates -->
+  <rect x="48" y="20" width="8" height="24" rx="2" fill="#000000"/>
+  <rect x="56" y="24" width="6" height="16" rx="1" fill="#000000"/>
+  
+  <!-- End caps -->
+  <rect x="0" y="28" width="2" height="8" rx="1" fill="#000000"/>
+  <rect x="62" y="28" width="2" height="8" rx="1" fill="#000000"/>
+</svg>

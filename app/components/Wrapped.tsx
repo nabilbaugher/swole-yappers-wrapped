@@ -526,7 +526,7 @@ export default function Wrapped() {
         </div>
 
         {/* Navigation Touch Areas */}
-        <div className="absolute inset-0 z-20 flex">
+        <div className="absolute inset-0 z-20 flex select-none touch-manipulation" style={{ WebkitTouchCallout: 'none' }}>
           <div
             className="flex-1 h-full"
             onClick={prevSlide}
